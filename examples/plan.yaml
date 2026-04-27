@@ -1,0 +1,44 @@
+# Example spec — replace `repo` with your own and run
+#   pm apply examples/plan.yaml
+# Re-running is a no-op (upsert-by-natural-key).
+
+repo: anatta-rs/pm
+
+labels:
+  - { name: "type:bug",       color: "d73a4a", description: "Something is broken" }
+  - { name: "type:feat",      color: "0e8a16", description: "New capability" }
+  - { name: "type:refactor",  color: "fbca04", description: "Internal cleanup" }
+  - { name: "area:core",      color: "0075ca" }
+  - { name: "area:github",    color: "1d76db" }
+  - { name: "area:cli",       color: "5319e7" }
+  - { name: "good first issue", color: "7057ff" }
+
+milestones:
+  - title: "v0.1 — initial"
+    description: "First public release: trait, GitHub backend, CLI."
+  - title: "v0.2 — bulk delete + dry-run"
+    description: "`pm prune` to drop labels/milestones/issues that the spec no longer mentions, plus `--dry-run` everywhere."
+  - title: "v0.3 — backends"
+    description: "Add `pm-gitlab` + `pm-forgejo` to validate the trait stays honest."
+
+issues:
+  - title: "Add `--dry-run` to `pm apply`"
+    body: |
+      Print the diff (which labels would be created/updated, which milestones, which issues)
+      without making any HTTP calls. Useful for CI to validate a spec before it lands.
+    milestone: "v0.2 — bulk delete + dry-run"
+    labels: ["type:feat", "area:cli"]
+
+  - title: "Implement `pm prune <spec>`"
+    body: |
+      Delete (or close) anything in the repo that's not in the spec.
+      Should be opt-in (`--apply`) and chatty by default.
+    milestone: "v0.2 — bulk delete + dry-run"
+    labels: ["type:feat", "area:cli"]
+
+  - title: "Add a GitLab backend (`pm-gitlab`)"
+    body: |
+      Stub the trait against the [GitLab issues API](https://docs.gitlab.com/ee/api/issues.html).
+      Mirrors `pm-github` shape; mostly an HTTP client + payload remapping.
+    milestone: "v0.3 — backends"
+    labels: ["type:feat", "good first issue"]
