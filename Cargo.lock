@@ -790,6 +790,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "pm-graph"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "pm-core",
+ "polystore",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "polystore"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "potential_utf"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1896,10 +1919,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
 
 [[patch.unused]]
-name = "ast-to-mermaid-core"
-version = "0.1.0"
-
-[[patch.unused]]
 name = "ingester-code"
 version = "0.1.0"
 
@@ -1908,5 +1927,5 @@ name = "ingester-core"
 version = "0.1.0"
 
 [[patch.unused]]
-name = "polystore"
+name = "ast-to-mermaid-core"
 version = "0.1.0"

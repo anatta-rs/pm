@@ -14,6 +14,8 @@ repository = "https://github.com/anatta-rs/pm"
 [workspace.dependencies]
 pm-core = { path = "crates/pm-core" }
 pm-github = { path = "crates/pm-github" }
+pm-graph = { path = "crates/pm-graph" }
+polystore = { git = "https://github.com/anatta-rs/polystore", tag = "v0.1.0" }
 
 # Foundational external deps.
 serde = { version = "1.0", features = ["derive"] }
@@ -48,3 +50,9 @@ module_name_repetitions = "allow"
 must_use_candidate = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
+
+# Local development: override the polystore git dep with the sibling checkout
+# under workspaces/polystore. CI ignores this (the path doesn't exist there)
+# and uses the tagged version from GitHub.
+[patch."https://github.com/anatta-rs/polystore"]
+polystore = { path = "../polystore" }

@@ -43,6 +43,7 @@ pm apply plan.yaml
 |---|---|
 | [`pm-core`](crates/pm-core)     | Trait + types. `IssueTracker`, `Issue`, `Milestone`, `Label`, `PmError`. Zero backends. |
 | [`pm-github`](crates/pm-github) | GitHub Issues backend (REST API v3). Bearer auth via PAT. |
+| [`pm-graph`](crates/pm-graph)   | Project a spec onto any [`polystore::GraphStore`]. Issues become first-class graph entities you can query alongside whatever else lives in your knowledge graph. |
 | [`pm-cli`](crates/pm-cli)       | The `pm` binary — YAML/JSON spec parser + `apply` / `list` commands. |
 
 ## Why a trait
