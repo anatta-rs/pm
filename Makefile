@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check lint test coverage coverage-summary coverage-gate check ci clean hooks
+.PHONY: fmt fmt-check lint test coverage coverage-summary coverage-gate check ci clean hooks bootstrap bootstrap-dry
 
 # Coverage exclusions:
 #  - main.rs / src/bin/*.rs : thin clap-parse + delegate-to-lib wrappers.
@@ -53,3 +53,28 @@ hooks:
 	@echo "✓ git hooks installed → .githooks/"
 	@echo "  pre-commit: fmt + clippy + test"
 	@echo "  pre-push:   make ci (+ coverage gate)"
+
+# Apply every spec in specs/ to its target repo. Requires $GITHUB_TOKEN
+# with issues:write on every repo referenced in the specs.
+#
+# Re-running is a no-op (upsert-by-natural-key).
+bootstrap:
+	@if [ -z "$$GITHUB_TOKEN" ]; then echo "set \$$GITHUB_TOKEN first"; exit 1; fi
+	@echo "→ building pm…"
+	@cargo build --release --bin pm
+	@for spec in specs/*.yaml; do \
+		echo ""; \
+		echo "═══ applying $$spec"; \
+		./target/release/pm apply $$spec || exit 1; \
+	done
+	@echo ""
+	@echo "✓ all specs applied"
+
+# Show the specs without applying them — handy review pass before
+# `make bootstrap` actually files anything.
+bootstrap-dry:
+	@for spec in specs/*.yaml; do \
+		echo ""; \
+		echo "═══ $$spec"; \
+		grep -E "^(repo|  - title|    title)" $$spec | head -40; \
+	done

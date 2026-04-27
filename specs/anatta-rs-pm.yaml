@@ -1,0 +1,131 @@
+repo: anatta-rs/pm
+
+labels:
+  - { name: "type:bug",         color: "d73a4a", description: "Something is broken" }
+  - { name: "type:feat",        color: "0e8a16", description: "New capability" }
+  - { name: "type:refactor",    color: "fbca04", description: "Internal cleanup" }
+  - { name: "type:perf",        color: "ff7f00", description: "Speed / memory work" }
+  - { name: "type:docs",        color: "0075ca", description: "Documentation only" }
+  - { name: "type:test",        color: "5319e7", description: "Tests only" }
+  - { name: "good first issue", color: "7057ff", description: "Friendly entry point" }
+  - { name: "area:core",        color: "1d76db", description: "IssueTracker trait + types" }
+  - { name: "area:github",      color: "1d76db", description: "pm-github backend" }
+  - { name: "area:graph",       color: "1d76db", description: "pm-graph projection" }
+  - { name: "area:cli",         color: "1d76db", description: "pm binary" }
+
+milestones:
+  - title: "v0.2 — graph + dry-run + prune"
+    description: "pm-graph (in flight), `--dry-run` mode, `pm prune` to delete entities the spec no longer mentions."
+  - title: "v0.3 — backends"
+    description: "GitLab + Forgejo to validate the trait stays honest. ~300 LOC each."
+  - title: "v0.4 — automation surfaces"
+    description: "MCP server (pm-mcp) and Anatta integration crate."
+  - title: "v1.0 — stable"
+    description: "Lock the spec format, audit idempotency for every backend."
+
+issues:
+  - title: "Add `--dry-run` to `pm apply`"
+    body: |
+      Print the diff (which labels/milestones/issues would be created
+      vs updated vs unchanged) without making any HTTP calls. Useful
+      for CI to validate a spec before it lands.
+
+      Implementation: a new `DryRunTracker` in pm-cli that records
+      intended writes, compares against `list_*`, prints the diff.
+      No mutation calls reach the real backend.
+    milestone: "v0.2 — graph + dry-run + prune"
+    labels: ["type:feat", "area:cli"]
+
+  - title: "Implement `pm prune <spec>`"
+    body: |
+      Delete (or close) anything in the repo that's not in the spec.
+      Should be opt-in (`--apply`), chatty by default (lists what
+      would go), respects `--dry-run`. Issues are closed (not deleted)
+      so the audit trail survives; labels and milestones are deleted
+      since they're rehydratable.
+    milestone: "v0.2 — graph + dry-run + prune"
+    labels: ["type:feat", "area:cli"]
+
+  - title: "pm-graph: bidirectional sync (graph → spec)"
+    body: |
+      v0.1 of pm-graph is one-way (spec → graph). Add the inverse:
+      walk the graph for a given `RepoCoord` and emit a `Spec` that
+      can be re-applied. Round-trip property test:
+
+          spec → graph → spec' === spec
+    milestone: "v0.2 — graph + dry-run + prune"
+    labels: ["type:feat", "area:graph"]
+
+  - title: "pm-graph: User node + AssignedTo edge"
+    body: |
+      `PmEdgeKind::AssignedTo` is reserved but not emitted (no User
+      node yet). Add `PmNode::User { login }` and have `project_issue`
+      emit `Issue → User` edges for every assignee.
+
+      Idempotent IDs: `pm:user:<login>` (no repo coord — users are
+      global).
+    milestone: "v0.2 — graph + dry-run + prune"
+    labels: ["type:feat", "area:graph"]
+
+  - title: "GitLab backend (`pm-gitlab`)"
+    body: |
+      Stub the trait against the [GitLab issues API](https://docs.gitlab.com/ee/api/issues.html).
+      Mirrors `pm-github` shape; mostly an HTTP client + payload remapping.
+      Auth via `Private-Token` header.
+    milestone: "v0.3 — backends"
+    labels: ["type:feat", "good first issue"]
+
+  - title: "Forgejo backend (`pm-forgejo`)"
+    body: |
+      Forgejo (and Gitea) expose a Gitea-compatible REST API. Same
+      shape as GitHub — likely the smallest backend yet.
+    milestone: "v0.3 — backends"
+    labels: ["type:feat", "good first issue"]
+
+  - title: "MCP server (`pm-mcp`)"
+    body: |
+      Stdio JSON-RPC server that exposes the trait as MCP tools:
+      `pm.upsert_issue`, `pm.upsert_milestone`, `pm.list_issues`, etc.
+      So an LLM agent can file issues directly from a conversation.
+
+      Tools take `repo: owner/name` so one server can drive many repos
+      (auth comes from the daemon-level token).
+    milestone: "v0.4 — automation surfaces"
+    labels: ["type:feat"]
+
+  - title: "Anatta integration (`anatta-pm-impl` crate, in Anatta repo)"
+    body: |
+      Wires `pm apply` into Anatta: after each apply call, also project
+      the spec into Anatta's Neo4j via
+      `pm_graph::project_spec(spec, &anatta_neo4j_graph_store)`.
+
+      Lives in the Anatta repo (private), not here — but tracked as a
+      cross-repo dependency.
+    milestone: "v0.4 — automation surfaces"
+    labels: ["type:feat", "area:graph"]
+
+  - title: "Document the upsert-by-natural-key contract"
+    body: |
+      `IssueTracker` doc says "upsert by natural key" but doesn't
+      enumerate the keys per entity. Write `IDEMPOTENCY.md` that
+      pins down: labels keyed by `name`, milestones by `title`,
+      issues by `title`. What happens on title rename (creates a new
+      one — caller's job to migrate). When the backend has no
+      natural-key constraint (GitHub allows duplicate-title issues),
+      the trait still picks the first match.
+    milestone: "v1.0 — stable"
+    labels: ["type:docs", "area:core"]
+
+  - title: "Spec validation pre-flight (`pm validate <spec>`)"
+    body: |
+      Read the spec without contacting the tracker:
+      - every issue.milestone references a milestone in the same spec
+        (or warn if not — could exist already)
+      - every issue.label references a known label
+      - colours are valid hex
+      - due_on dates parse
+      - no duplicate titles in any section
+
+      Exit non-zero on the first error; useful for CI gate.
+    milestone: "v0.2 — graph + dry-run + prune"
+    labels: ["type:feat", "area:cli", "good first issue"]

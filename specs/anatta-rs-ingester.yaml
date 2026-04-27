@@ -1,0 +1,122 @@
+repo: anatta-rs/ingester
+
+labels:
+  - { name: "type:bug",         color: "d73a4a", description: "Something is broken" }
+  - { name: "type:feat",        color: "0e8a16", description: "New capability" }
+  - { name: "type:refactor",    color: "fbca04", description: "Internal cleanup" }
+  - { name: "type:perf",        color: "ff7f00", description: "Speed / memory work" }
+  - { name: "type:docs",        color: "0075ca", description: "Documentation only" }
+  - { name: "type:test",        color: "5319e7", description: "Tests only" }
+  - { name: "good first issue", color: "7057ff", description: "Friendly entry point" }
+  - { name: "area:html",        color: "1d76db", description: "ingester-html" }
+  - { name: "area:markdown",    color: "1d76db", description: "ingester-markdown" }
+  - { name: "area:pdf",         color: "1d76db", description: "ingester-pdf" }
+  - { name: "area:code",        color: "1d76db", description: "ingester-code" }
+  - { name: "area:chunk",       color: "1d76db", description: "ingester-chunk" }
+  - { name: "area:dialect",     color: "1d76db", description: "Dialect pattern across parsers" }
+  - { name: "area:dispatcher",  color: "1d76db", description: "Auto-format detection" }
+
+milestones:
+  - title: "v0.2 — more parsers"
+    description: "Cover the remaining Anatta parsers (arxiv, message) and add a format dispatcher so callers don't pick the parser by hand."
+  - title: "v0.3 — code dialects + richer enrichment"
+    description: "Code dialects (Rust traits, Python type-hints), HTML link graph, PDF figures/tables."
+  - title: "v1.0 — stable atom shape"
+    description: "Lock the Atom/Relation/ParseOutput contract, document the dialect protocol."
+
+issues:
+  - title: "Port arxiv parser from Anatta"
+    body: |
+      The Anatta repo has a parser for arXiv metadata dumps that we
+      ingested at scale (the Kaggle bulk-ingester). Port to a new
+      `ingester-arxiv` crate following the dialect pattern: generic
+      pass + dialects (e.g. `BasicArxiv`, `WithReferences`).
+    milestone: "v0.2 — more parsers"
+    labels: ["type:feat", "area:dialect"]
+
+  - title: "Port message parser from Anatta"
+    body: |
+      Anatta ingests conversation turns. Port to `ingester-message`
+      with dialects per protocol (slack export, mbox, mcp turn,
+      claude-code session JSONL).
+    milestone: "v0.2 — more parsers"
+    labels: ["type:feat", "area:dialect"]
+
+  - title: "Add format dispatcher (auto-detect by extension + magic bytes)"
+    body: |
+      A single `ingester::ingest_path(p: &Path)` that picks the right
+      parser based on extension, falls back to magic-byte sniffing
+      (PDF's `%PDF-`, HTML's `<!DOCTYPE` etc.), errors clearly when
+      ambiguous.
+    milestone: "v0.2 — more parsers"
+    labels: ["type:feat", "area:dispatcher"]
+
+  - title: "HTML: link-graph extraction dialect"
+    body: |
+      `HtmlLinks` already extracts hrefs into atoms; add a `LinkGraph`
+      dialect that emits typed `Relation { kind: link_to }` edges from
+      sections to their targets so we get a proper page-graph at
+      ingest time.
+    milestone: "v0.3 — code dialects + richer enrichment"
+    labels: ["type:feat", "area:html", "area:dialect"]
+
+  - title: "PDF: figure + table extraction (uses AcademicPaper dialect)"
+    body: |
+      Build on the existing `AcademicPaper` dialect. Use `lopdf` to
+      walk the content stream and pull out figure captions + table
+      placements as separate atoms (`kind: figure`, `kind: table`,
+      tags=["chunk"]) so they're embedding-ready.
+    milestone: "v0.3 — code dialects + richer enrichment"
+    labels: ["type:feat", "area:pdf", "area:dialect"]
+
+  - title: "Code dialects: Rust (traits, lifetimes, generics)"
+    body: |
+      The `RustParser` currently emits modules + items + calls + uses.
+      Add a `RustTraits` dialect that enriches function/impl atoms
+      with trait info, lifetime params, and where-clause bounds —
+      data Anatta needs for cross-reference resolution.
+    milestone: "v0.3 — code dialects + richer enrichment"
+    labels: ["type:feat", "area:code", "area:dialect"]
+
+  - title: "Code dialects: Python (type-hints, decorators)"
+    body: |
+      Symmetric to the Rust dialect — extract type hints, decorators
+      (especially `@dataclass` / `@property`), and async qualifiers.
+    milestone: "v0.3 — code dialects + richer enrichment"
+    labels: ["type:feat", "area:code", "area:dialect"]
+
+  - title: "Add JSON parser (`ingester-json`)"
+    body: |
+      JSON Schemas, OpenAPI specs, configuration files. Generic pass
+      emits a tree of `kind: object|array|leaf` atoms with chunkify;
+      a `Schema` dialect detects JSON Schema and pulls out `$ref` /
+      `allOf` / etc. as relations.
+    milestone: "v0.3 — code dialects + richer enrichment"
+    labels: ["type:feat", "good first issue"]
+
+  - title: "Add CSV parser (`ingester-csv`)"
+    body: |
+      Header detection, type inference per column, one atom per row
+      (kind=row, tags=[chunk]) plus a single schema atom describing
+      column types.
+    milestone: "v0.3 — code dialects + richer enrichment"
+    labels: ["type:feat", "good first issue"]
+
+  - title: "Document the dialect protocol"
+    body: |
+      The dialect pattern (generic pass + chained enrichment) is now
+      consistent across html/markdown/pdf. Write `DIALECTS.md` so the
+      next contributor knows: how to register a dialect, what ordering
+      guarantees they get, what the context type is for, when to emit
+      a new atom vs mutate an existing one.
+    milestone: "v1.0 — stable atom shape"
+    labels: ["type:docs", "area:dialect"]
+
+  - title: "Conformance suite for parsers"
+    body: |
+      Every parser should round-trip through the same shared assertions:
+      output validates against the Atom schema, every chunk-tagged
+      atom has non-empty content_hash, no duplicate atom ids, etc.
+      Extract these into a `ingester-conformance` test crate.
+    milestone: "v1.0 — stable atom shape"
+    labels: ["type:test"]

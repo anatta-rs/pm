@@ -1,0 +1,82 @@
+repo: anatta-rs/ast-to-mermaid
+
+labels:
+  - { name: "type:bug",         color: "d73a4a", description: "Something is broken" }
+  - { name: "type:feat",        color: "0e8a16", description: "New capability" }
+  - { name: "type:refactor",    color: "fbca04", description: "Internal cleanup" }
+  - { name: "type:perf",        color: "ff7f00", description: "Speed / memory work" }
+  - { name: "type:docs",        color: "0075ca", description: "Documentation only" }
+  - { name: "type:test",        color: "5319e7", description: "Tests only" }
+  - { name: "good first issue", color: "7057ff", description: "Friendly entry point" }
+  - { name: "area:parser",      color: "1d76db", description: "tree-sitter / language frontend" }
+  - { name: "area:render",      color: "1d76db", description: "Mermaid output" }
+  - { name: "area:cli",         color: "1d76db", description: "ast-to-mermaid binary" }
+  - { name: "area:mcp",         color: "1d76db", description: "MCP server" }
+
+milestones:
+  - title: "v0.2 — more languages"
+    description: "Beyond Rust + Python: TypeScript, Go, Java. The render layer is language-agnostic; this work is in ingester-code (parsers) plus thin glue here."
+  - title: "v0.3 — CLI + MCP polish"
+    description: "Walker controls (--include, --depth), MCP server wrapper, function-level rendering polish."
+  - title: "v1.0 — stable"
+    description: "Lock the level/render API, document atom→mermaid invariants."
+
+issues:
+  - title: "Add TypeScript language support"
+    body: |
+      Parser lives in `ingester-code` (tree-sitter-typescript). Plug
+      it into the renderer via the existing language-detection switch.
+
+      Acceptance:
+      - `ast-to-mermaid analyze ./tests/fixtures/mini-ts --level project` → valid Mermaid
+      - snapshots for the 5 levels × TS
+    milestone: "v0.2 — more languages"
+    labels: ["type:feat", "area:parser"]
+
+  - title: "Add Go language support"
+    body: |
+      Same shape as TS — plug tree-sitter-go via ingester-code, hook
+      the file-extension dispatcher.
+    milestone: "v0.2 — more languages"
+    labels: ["type:feat", "area:parser", "good first issue"]
+
+  - title: "Add `--include <glob>` to the CLI walker"
+    body: |
+      Symmetric to `--exclude`. When both are present, files must match
+      `--include` AND not match `--exclude`. Multi-value, Vec<Glob>.
+    milestone: "v0.3 — CLI + MCP polish"
+    labels: ["type:feat", "area:cli", "good first issue"]
+
+  - title: "Add `--depth N` to limit traversal in function/impact levels"
+    body: |
+      The function-call graph can blow up on large codebases. `--depth N`
+      caps recursion in the renderer and falls back to a "..." node
+      when the cap is hit.
+    milestone: "v0.3 — CLI + MCP polish"
+    labels: ["type:feat", "area:render"]
+
+  - title: "MCP server wrapper (`ast-to-mermaid-mcp` crate)"
+    body: |
+      Expose the renderer as a single MCP tool: `code_map(level, target?)`.
+      Daemon takes a project path on startup, parses once, then answers
+      MCP queries against the in-memory store. This is what Anatta will
+      delegate to via anatta-polystore-impl.
+    milestone: "v0.3 — CLI + MCP polish"
+    labels: ["type:feat", "area:mcp"]
+
+  - title: "Function-level rendering: hide trivial private helpers"
+    body: |
+      At function-level, modules with 30+ tiny helpers produce visual
+      soup. Group functions with only-1-caller-and-≤5-LOC under a
+      "(N helpers)" pseudo-node.
+    milestone: "v0.3 — CLI + MCP polish"
+    labels: ["type:feat", "type:refactor", "area:render"]
+
+  - title: "Document the atom → mermaid mapping"
+    body: |
+      `crates/ast-to-mermaid-core/src/render/` is intentional but
+      undocumented. Write a `RENDERING.md` that explains: which atom
+      kinds become nodes vs subgraphs, how edges (CALLS, USES, IMPLEMENTS)
+      project to arrows, level-by-level reduction rules.
+    milestone: "v1.0 — stable"
+    labels: ["type:docs", "area:render"]
