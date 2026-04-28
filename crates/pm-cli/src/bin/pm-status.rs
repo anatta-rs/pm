@@ -18,180 +18,9 @@
 use anyhow::{Context, Result, anyhow};
 use chrono::Utc;
 use clap::Parser;
-use pm_cli::status::{MilestoneSummary, PrSummary, RepoSummary};
-use reqwest::header::{ACCEPT, AUTHORIZATION, USER_AGENT};
-use reqwest::{Client, StatusCode};
-use serde_json::Value;
+use pm_cli::client::GitHubClient;
+use pm_cli::status::RepoSummary;
 use std::process::Command;
-
-/// GitHub REST client for fetching repo data.
-struct GitHubClient {
-    client: Client,
-    token: String,
-    api_root: String,
-}
-
-impl GitHubClient {
-    /// Create a new client with a token.
-    fn new(token: String) -> Self {
-        Self {
-            client: Client::new(),
-            token,
-            api_root: "https://api.github.com".to_string(),
-        }
-    }
-
-    /// Get the bearer token header value.
-    fn auth_header(&self) -> String {
-        format!("Bearer {}", self.token)
-    }
-
-    /// Fetch JSON from a GitHub endpoint.
-    async fn get_json(&self, path: &str) -> Result<Value> {
-        let url = format!("{}{path}", self.api_root);
-        let resp = self
-            .client
-            .get(&url)
-            .header(ACCEPT, "application/vnd.github+json")
-            .header(USER_AGENT, "pm-status/0.1")
-            .header(AUTHORIZATION, self.auth_header())
-            .send()
-            .await
-            .context("failed to fetch from GitHub")?;
-
-        match resp.status() {
-            s if s.is_success() => resp.json().await.context("failed to parse JSON response"),
-            StatusCode::UNAUTHORIZED => {
-                Err(anyhow!("GitHub auth failed: invalid or expired token"))
-            }
-            s => Err(anyhow!("GitHub returned {s}: {}", resp.text().await?)),
-        }
-    }
-
-    /// Fetch paginated results (up to `per_page` per request).
-    async fn get_paginated(&self, path: &str, per_page: u32) -> Result<Vec<Value>> {
-        let mut results = Vec::new();
-        let mut page = 1u32;
-
-        loop {
-            let url = format!("{path}?page={page}&per_page={per_page}");
-            let items = self.get_json(&url).await?;
-
-            if let Value::Array(arr) = items {
-                if arr.is_empty() {
-                    break;
-                }
-                results.extend(arr);
-                page += 1;
-            } else {
-                break;
-            }
-        }
-
-        Ok(results)
-    }
-
-    /// Fetch open PRs for a repo.
-    async fn fetch_open_prs(&self, owner: &str, repo: &str) -> Result<Vec<PrSummary>> {
-        let path = format!("/repos/{owner}/{repo}/pulls?state=open");
-        let items = self.get_paginated(&path, 50).await?;
-
-        let prs = items
-            .iter()
-            .filter_map(|item| {
-                let number = item.get("number")?.as_u64()?;
-                let title = item.get("title")?.as_str()?.to_string();
-                let merge_state = item
-                    .get("mergeable_state")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("unknown")
-                    .to_string();
-
-                Some(PrSummary {
-                    number,
-                    title,
-                    merge_state,
-                })
-            })
-            .collect();
-
-        Ok(prs)
-    }
-
-    /// Fetch open issues count (excluding PRs).
-    async fn fetch_open_issues_count(&self, owner: &str, repo: &str) -> Result<u32> {
-        let path = format!("/repos/{owner}/{repo}/issues?state=open&filter=issues");
-        let _items = self.get_paginated(&path, 1).await?;
-
-        // Simple approach: fetch one page and count.
-        let url = format!("{}{path}&per_page=1", self.api_root);
-        let resp = self
-            .client
-            .get(url)
-            .header(ACCEPT, "application/vnd.github+json")
-            .header(USER_AGENT, "pm-status/0.1")
-            .header(AUTHORIZATION, self.auth_header())
-            .send()
-            .await?;
-
-        let link_header = resp
-            .headers()
-            .get("link")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("");
-
-        // Parse the Link header to find the last page; format: <...?page=N&...>; rel="last"
-        if let Some(last_link) = link_header.split(',').find(|s| s.contains("rel=\"last\"")) {
-            if let Some(start) = last_link.find("page=") {
-                if let Some(end) = last_link[start + 5..].find('&') {
-                    if let Ok(last_page) = last_link[start + 5..start + 5 + end].parse::<u32>() {
-                        return Ok(last_page);
-                    }
-                } else if let Some(end) = last_link[start + 5..].find('>') {
-                    if let Ok(last_page) = last_link[start + 5..start + 5 + end].parse::<u32>() {
-                        return Ok(last_page);
-                    }
-                }
-            }
-        }
-
-        // Fallback: assume 1 page = 1 issue
-        Ok(1)
-    }
-
-    /// Fetch milestones.
-    async fn fetch_milestones(&self, owner: &str, repo: &str) -> Result<Vec<MilestoneSummary>> {
-        let path = format!("/repos/{owner}/{repo}/milestones");
-        let items = self.get_paginated(&path, 50).await?;
-
-        let milestones = items
-            .iter()
-            .filter_map(|item| {
-                let title = item.get("title")?.as_str()?.to_string();
-                let due_on = item
-                    .get("due_on")
-                    .and_then(|v| v.as_str())
-                    .map(ToString::to_string);
-                let open = item.get("open_issues")?.as_u64()? as u32;
-                let closed = item.get("closed_issues")?.as_u64()? as u32;
-                let description = item
-                    .get("description")
-                    .and_then(|v| v.as_str())
-                    .map(ToString::to_string);
-
-                Some(MilestoneSummary {
-                    title,
-                    due_on,
-                    open,
-                    closed,
-                    description,
-                })
-            })
-            .collect();
-
-        Ok(milestones)
-    }
-}
 
 /// Command-line arguments.
 #[derive(Debug, Parser)]
@@ -220,9 +49,12 @@ async fn resolve_scope(client: &GitHubClient, scope: &str) -> Result<Vec<(String
             repos.push((owner.to_string(), repo.to_string()));
         } else {
             // Fetch all repos for this owner/org
-            let path = format!("/orgs/{item}/repos?type=sources&per_page=50");
-            match client.get_json(&path).await {
-                Ok(Value::Array(items)) => {
+            let path = format!("/orgs/{item}/repos");
+            match client
+                .get_paginated(&path, &[("type", "sources")], 50)
+                .await
+            {
+                Ok(items) => {
                     for repo_item in items {
                         if let (Some(name), Some(archived)) = (
                             repo_item.get("name").and_then(|v| v.as_str()),
@@ -236,10 +68,13 @@ async fn resolve_scope(client: &GitHubClient, scope: &str) -> Result<Vec<(String
                         }
                     }
                 }
-                _ => {
+                Err(_) => {
                     // Try as a user instead of org
-                    let user_path = format!("/users/{item}/repos?type=owner&per_page=50");
-                    if let Ok(Value::Array(items)) = client.get_json(&user_path).await {
+                    let user_path = format!("/users/{item}/repos");
+                    if let Ok(items) = client
+                        .get_paginated(&user_path, &[("type", "owner")], 50)
+                        .await
+                    {
                         for repo_item in items {
                             if let (Some(name), Some(archived)) = (
                                 repo_item.get("name").and_then(|v| v.as_str()),

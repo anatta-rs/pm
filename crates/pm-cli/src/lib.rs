@@ -3,4 +3,5 @@
 #![warn(missing_docs)]
 #![deny(unsafe_code)]
 
+pub mod client;
 pub mod status;
