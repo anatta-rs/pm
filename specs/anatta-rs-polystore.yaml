@@ -1,0 +1,102 @@
+repo: anatta-rs/polystore
+
+labels:
+  - { name: "type:bug",          color: "d73a4a", description: "Something is broken" }
+  - { name: "type:feat",         color: "0e8a16", description: "New capability" }
+  - { name: "type:refactor",     color: "fbca04", description: "Internal cleanup" }
+  - { name: "type:perf",         color: "ff7f00", description: "Speed / memory work" }
+  - { name: "type:docs",         color: "0075ca", description: "Documentation only" }
+  - { name: "type:test",         color: "5319e7", description: "Tests only" }
+  - { name: "good first issue",  color: "7057ff", description: "Friendly entry point" }
+  - { name: "area:graph",        color: "1d76db", description: "GraphStore trait" }
+  - { name: "area:kv",           color: "1d76db", description: "KvStore trait" }
+  - { name: "area:vector",       color: "1d76db", description: "VectorStore trait" }
+  - { name: "area:traits",       color: "1d76db", description: "Cross-cutting trait design" }
+
+milestones:
+  - title: "v0.2 — reference impls"
+    description: "Ship in-memory + SQLite/HNSW reference impls so the trait can be evaluated end-to-end without a Neo4j cluster."
+  - title: "v0.3 — performance"
+    description: "Benchmarks comparing impls + bulk-method overrides for backend-specific speedups."
+  - title: "v1.0 — stable API"
+    description: "Lock the trait surface, document edge dedup + ordering invariants, schema versioning."
+
+issues:
+  - title: "Reference impl: SqliteKvStore"
+    body: |
+      Ship a `polystore::KvStore` impl backed by SQLite so consumers
+      can run a full storage triad without depending on Anatta's KV.
+
+      Acceptance:
+      - new crate `polystore-sqlite-kv` (or feature on the main crate)
+      - covers all `KvStore` methods including bulk
+      - 95% line coverage with tempfile-backed tests
+    milestone: "v0.2 — reference impls"
+    labels: ["type:feat", "area:kv", "good first issue"]
+
+  - title: "Reference impl: InMemoryGraphStore (standalone)"
+    body: |
+      ast-to-mermaid has an `InMemoryStore<Atom, Relation>` — generalise
+      it into a `polystore::InMemoryGraphStore<N, E>` and ship in this
+      repo so we don't reinvent it across consumers.
+    milestone: "v0.2 — reference impls"
+    labels: ["type:feat", "area:graph"]
+
+  - title: "Reference impl: HnswVectorStore"
+    body: |
+      `polystore::VectorStore` impl backed by [`hnsw_rs`](https://crates.io/crates/hnsw_rs)
+      — covers `upsert`, `search`, `delete`. Persistence to disk via mmap optional in v0.2.
+
+      Validates the trait against a real ANN index before we add more backends.
+    milestone: "v0.2 — reference impls"
+    labels: ["type:feat", "area:vector"]
+
+  - title: "Document edge dedup contract"
+    body: |
+      The `GraphStore::add_edge` doc says nothing about duplicate edges.
+      Anatta's Neo4j MERGE dedups; the in-memory ast-to-mermaid impl
+      does not. Pick one and commit:
+
+      - Option A: `add_edge` is upsert (dedup by `(from, to, kind)`).
+      - Option B: `add_edge` always appends; introduce `merge_edge` for
+        callers that want dedup.
+
+      Whichever we pick, document on the trait + add a test to the
+      shared conformance suite (issue #TBD).
+    milestone: "v1.0 — stable API"
+    labels: ["type:docs", "area:graph", "area:traits"]
+
+  - title: "Conformance test suite for GraphStore impls"
+    body: |
+      Extract a `polystore-conformance` crate that takes any
+      `GraphStore<String, ()>` and runs the same set of tests against
+      it (CRUD, bulk, neighbour direction, etc.). Anatta's Neo4j impl
+      and the in-memory ref impl both run it; the suite is the trait's
+      executable spec.
+    milestone: "v0.3 — performance"
+    labels: ["type:test", "area:traits"]
+
+  - title: "Benchmarks: in-memory vs SQLite vs Neo4j"
+    body: |
+      Use `criterion` to bench `upsert_node`, `add_edge`, `neighbors`,
+      `list_by_kind` across the three impls at 10k / 100k / 1M nodes.
+      Report tail latencies.
+    milestone: "v0.3 — performance"
+    labels: ["type:perf", "type:test", "area:graph"]
+
+  - title: "Stream variants for large list_by_kind / neighbors"
+    body: |
+      The current API materialises `Vec<EntityId>` — at 1M+ nodes this
+      allocates a lot. Consider a `Stream<Item = EntityId>` variant
+      gated behind a feature flag for callers that page results.
+    milestone: "v1.0 — stable API"
+    labels: ["type:perf", "area:graph"]
+
+  - title: "Schema versioning for serialised payloads"
+    body: |
+      Backends store `N` and `E` as JSON (or whatever the impl picks).
+      When a consumer evolves their `N` enum, old data should
+      deserialise gracefully (or the trait should expose a migration
+      hook). Pick a strategy before v1.0.
+    milestone: "v1.0 — stable API"
+    labels: ["type:feat", "area:traits"]

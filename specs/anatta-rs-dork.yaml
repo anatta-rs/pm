@@ -1,0 +1,94 @@
+repo: anatta-rs/dork
+
+labels:
+  - { name: "type:bug",         color: "d73a4a", description: "Something is broken" }
+  - { name: "type:feat",        color: "0e8a16", description: "New capability" }
+  - { name: "type:refactor",    color: "fbca04", description: "Internal cleanup" }
+  - { name: "type:perf",        color: "ff7f00", description: "Speed / memory work" }
+  - { name: "type:docs",        color: "0075ca", description: "Documentation only" }
+  - { name: "type:test",        color: "5319e7", description: "Tests only" }
+  - { name: "good first issue", color: "7057ff", description: "Friendly entry point" }
+  - { name: "area:engine",      color: "1d76db", description: "SearchEngine trait + types" }
+  - { name: "area:scrape",      color: "1d76db", description: "HTML scraper backends (DDG, Brave, Bing)" }
+  - { name: "area:api",         color: "1d76db", description: "Authenticated API backends (Google CSE)" }
+  - { name: "area:decorator",   color: "1d76db", description: "Cross-cutting wrappers (cache, retry, composite)" }
+
+milestones:
+  - title: "v0.2 — more backends"
+    description: "Brave, Bing, SearXNG. Each ~200 LOC, validates the trait against another shape."
+  - title: "v0.3 — composition + caching"
+    description: "Composite (round-robin / fallback) + caching decorator. The trait stays minimal; behaviour layers on via wrappers."
+  - title: "v1.0 — stable"
+    description: "Lock the SearchEngine surface, document scraper drift policy."
+
+issues:
+  - title: "Brave Search backend (`dork-brave`)"
+    body: |
+      Brave's [Web Search API](https://api.search.brave.com/) returns
+      JSON. Mirror the `dork-google` shape: builder-pattern config,
+      mock-server tests for 200 / 401 / 429.
+
+      Auth: `X-Subscription-Token` header (env: `BRAVE_API_KEY`).
+    milestone: "v0.2 — more backends"
+    labels: ["type:feat", "area:api"]
+
+  - title: "Bing Search backend (`dork-bing`)"
+    body: |
+      Bing v7 API (Microsoft Azure). JSON response, `Ocp-Apim-Subscription-Key`
+      header. Same test surface as Google.
+    milestone: "v0.2 — more backends"
+    labels: ["type:feat", "area:api", "good first issue"]
+
+  - title: "SearXNG backend (`dork-searxng`)"
+    body: |
+      Privacy-friendly meta-search. JSON via `?format=json`. No auth —
+      caller passes the instance URL via builder. Useful for self-hosted
+      setups + offline-friendly testing.
+    milestone: "v0.2 — more backends"
+    labels: ["type:feat", "area:api", "good first issue"]
+
+  - title: "Composite engine — round-robin + fallback"
+    body: |
+      A `CompositeEngine` that takes `Vec<Box<dyn SearchEngine>>` and
+      either rotates through them per-call (load-balance) or chains
+      them (try first, fall back on `Network`/`RateLimited`/`Backend`
+      errors). Tested against three FakeEngine shims.
+    milestone: "v0.3 — composition + caching"
+    labels: ["type:feat", "area:decorator"]
+
+  - title: "Caching decorator — memory + on-disk"
+    body: |
+      A `CachingEngine<E>` that wraps any `SearchEngine` and memoises
+      `(query, limit, region, safesearch, site, filetype) → results`
+      with a configurable TTL. In-memory by default; optional disk
+      backing via `sled` (or whatever's lightest at the time).
+
+      Don't bake into the trait — wrap. Callers that want neither stay clean.
+    milestone: "v0.3 — composition + caching"
+    labels: ["type:feat", "area:decorator"]
+
+  - title: "Rate-limit-aware retry decorator"
+    body: |
+      `RetryEngine<E>` that catches `DorkError::RateLimited { retry_after_seconds }`,
+      sleeps the suggested duration (or a configurable cap), and retries
+      up to N times. Other error variants pass through untouched.
+    milestone: "v0.3 — composition + caching"
+    labels: ["type:feat", "area:decorator", "good first issue"]
+
+  - title: "Document HTML scraper drift policy"
+    body: |
+      DuckDuckGo and (any future) HTML-scrape backends will drift when
+      the site re-themes. Write a `SCRAPERS.md` that explains:
+      - the fixture-based regression strategy in CI
+      - how to refresh a fixture when DDG changes layout
+      - the SLA we offer (best-effort on master, no patches for old releases)
+    milestone: "v1.0 — stable"
+    labels: ["type:docs", "area:scrape"]
+
+  - title: "Add a CLI binary (`dork-cli`)"
+    body: |
+      Single command: `dork query "<terms>" --engine ddg --limit 10`.
+      Prints rank + title + url + snippet. Picks engine via `--engine`
+      flag, env vars for keys. Useful for ad-hoc shell workflows.
+    milestone: "v0.3 — composition + caching"
+    labels: ["type:feat", "good first issue"]
