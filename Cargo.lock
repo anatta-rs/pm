@@ -747,10 +747,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "chrono",
  "clap",
+ "futures",
  "pm-core",
  "pm-github",
  "pretty_assertions",
+ "reqwest",
  "serde",
  "serde_json",
  "serde_yaml",
