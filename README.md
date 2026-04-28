@@ -67,6 +67,8 @@ This is what makes the spec file safe to keep in git and re-run from CI.
 
 ### `pm apply` — declarative project spec
 
+#### Single-repo spec
+
 ```sh
 export GITHUB_TOKEN=ghp_…
 pm apply plan.yaml
@@ -75,6 +77,52 @@ pm apply plan.yaml
 
 Idempotent YAML/JSON spec to GitHub — upsert labels, milestones, and issues by
 natural key (`name`, `title`). Same spec re-runs forever without duplicates.
+
+#### Multi-repo spec
+
+Apply the same labels and milestones across multiple repositories, with per-repo issues:
+
+```yaml
+# org-plan.yaml
+repos:
+  - anatta-rs/Anatta
+  - anatta-rs/pm
+  - anatta-rs/dork
+
+shared_labels:
+  - { name: "type:bug",     color: "d73a4a", description: "Something is broken" }
+  - { name: "area:graph",   color: "0075ca" }
+
+shared_milestones:
+  - title: "v0.5 — Multi-tenant"
+    description: "GitHub-orgs style namespace model"
+    due_on: "2026-06-01"
+
+issues:
+  - repo: anatta-rs/Anatta
+    title: "I7: fix /api/v1/health 401"
+    labels: ["type:bug"]
+    milestone: "v0.5 — Multi-tenant"
+  - repo: anatta-rs/pm
+    title: "Multi-repo apply support"
+    labels: ["type:bug"]
+  - repo: anatta-rs/dork
+    title: "Archive after v0.5"
+    labels: ["type:bug"]
+    milestone: "v0.5 — Multi-tenant"
+```
+
+```sh
+pm apply org-plan.yaml
+# multi-spec: 3 repos × 2 labels × 1 milestones × 3 issues
+# ✓ anatta-rs/Anatta         2 label(s) (new 0), 1 milestone(s) (new 1), 1 issue(s) (new 1)
+# ✓ anatta-rs/pm            2 label(s) (new 2), 1 milestone(s) (new 1), 1 issue(s) (new 1)
+# ✓ anatta-rs/dork          2 label(s) (new 0), 1 milestone(s) (new 0), 1 issue(s) (new 1)
+```
+
+The format auto-detects: if `repos:` (array) is present, it's treated as multi-repo.
+All repos receive `shared_labels` and `shared_milestones` (idempotent upsert).
+Each issue must have a `repo:` field matching one in the `repos:` list.
 
 ### `pm-status` — cross-repo snapshot
 
