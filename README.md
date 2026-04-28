@@ -64,6 +64,19 @@ The trait promises **upsert by natural key**:
 no-ops on the second pass — no duplicate issues, no orphaned milestones.
 This is what makes the spec file safe to keep in git and re-run from CI.
 
+## Testing pm-graph
+
+`pm-graph` has two test suites:
+
+- **Unit tests** (fast): `cargo test -p pm-graph --lib` — exercises the in-memory test store.
+- **E2E tests** (spins up real Neo4j): `cargo test -p pm-graph --features e2e-neo4j --tests` — validates the graph projection against a real Neo4j 5 instance via testcontainers. Disabled by default (`#[ignore]`) so `cargo test` stays quick; CI runs both.
+
+To run only the e2e integration tests locally:
+
+```sh
+cargo test -p pm-graph --features e2e-neo4j --tests -- --ignored
+```
+
 ## Contributing
 
 ```sh
