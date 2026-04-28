@@ -10,14 +10,11 @@
 #![warn(missing_docs)]
 #![deny(unsafe_code)]
 
-mod apply;
-mod spec;
-
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
-use pm_core::IssueTracker;
-use pm_github::GitHubTracker;
-use spec::Spec;
+use pm::GitHubTracker;
+use pm::IssueTracker;
+use pm::Spec;
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
@@ -93,9 +90,7 @@ async fn cmd_apply(path: PathBuf, token: Option<String>, api_root: Option<String
     let tracker = builder.build().context("build GitHubTracker")?;
 
     tracing::info!(repo = %spec.repo, labels = spec.labels.len(), milestones = spec.milestones.len(), issues = spec.issues.len(), "applying spec");
-    let report = apply::apply(&spec, &tracker)
-        .await
-        .context("apply failed")?;
+    let report = pm::apply(&spec, &tracker).await.context("apply failed")?;
     println!(
         "✓ applied {repo}: {l} label(s), {m} milestone(s), {i} issue(s)",
         repo = spec.repo,

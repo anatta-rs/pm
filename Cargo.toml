@@ -1,44 +1,53 @@
-# Mark this crate as its own workspace root so it doesn't get pulled into
-# the Anatta workspace when checked out under Anatta/workspaces/ for local dev.
-[workspace]
-members = ["crates/*"]
-resolver = "2"
-
-[workspace.package]
+[package]
+name = "pm"
 version = "0.1.0"
 edition = "2024"
+description = "Bulk project management — apply YAML/JSON specs to issue trackers (GitHub, ...)"
 authors = ["Anatta <noreply@anatta.dev>"]
 license = "Apache-2.0"
 repository = "https://github.com/anatta-rs/pm"
+keywords = ["github", "issues", "bulk", "cli", "pm"]
+categories = ["command-line-utilities", "api-bindings"]
 
-[workspace.dependencies]
-pm-core = { path = "crates/pm-core" }
-pm-github = { path = "crates/pm-github" }
-polystore = { git = "https://github.com/anatta-rs/polystore", tag = "v0.1.0" }
+[features]
+default = ["github"]
+github = []
 
-# Foundational external deps.
+[dependencies]
+anyhow = "1"
+async-trait = "0.1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+clap = { version = "4", features = ["derive", "env"] }
+futures = "0.3"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
 thiserror = "2"
-async-trait = "0.1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs"] }
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
-url = "2"
-clap = { version = "4", features = ["derive", "env"] }
-anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
 
-# Dev-deps shared across crates.
-pretty_assertions = "1"
+[dev-dependencies]
+httpmock = "0.7"
 mockito = "1"
+pretty_assertions = "1"
+tokio = { version = "1", features = ["test-util"] }
 
-[workspace.lints.rust]
+[[bin]]
+name = "pm"
+path = "src/bin/pm.rs"
+
+[[bin]]
+name = "pm-status"
+path = "src/bin/pm-status.rs"
+
+[lints.rust]
 unsafe_code = "deny"
 missing_docs = "warn"
 
-[workspace.lints.clippy]
+[lints.clippy]
 correctness = { level = "deny", priority = -1 }
 suspicious = { level = "warn", priority = -1 }
 complexity = { level = "warn", priority = -1 }

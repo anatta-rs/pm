@@ -1418,7 +1418,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pm-cli"
+name = "pm"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1427,8 +1427,7 @@ dependencies = [
  "clap",
  "futures",
  "httpmock",
- "pm-core",
- "pm-github",
+ "mockito",
  "pretty_assertions",
  "reqwest",
  "serde",
@@ -1438,34 +1437,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "pm-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "pretty_assertions",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
-]
-
-[[package]]
-name = "pm-github"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "mockito",
- "pm-core",
- "pretty_assertions",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "tracing",
  "url",
 ]
 

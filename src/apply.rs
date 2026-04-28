@@ -2,7 +2,7 @@
 //! milestones, then issues. Reports a per-section count of upserts.
 
 use crate::spec::Spec;
-use pm_core::{IssueTracker, Result};
+use crate::{IssueTracker, Result};
 
 /// What `apply` did. All counts represent successful upsert calls; the
 /// trait promises idempotency, so re-running yields the same numbers.
@@ -40,7 +40,7 @@ pub async fn apply<T: IssueTracker>(spec: &Spec, tracker: &T) -> Result<ApplyRep
 mod tests {
     use super::*;
     use crate::spec::{SpecIssue, SpecLabel, SpecMilestone};
-    use pm_core::{
+    use crate::{
         Issue, IssueRef, IssueState, Label, Milestone, MilestoneRef, MilestoneState, PmError,
     };
     use std::sync::Mutex;

@@ -1,10 +1,10 @@
 //! GitHub REST tracker implementation.
 
-use async_trait::async_trait;
-use pm_core::{
+use crate::{
     Issue, IssueRef, IssueState, IssueTracker, Label, Milestone, MilestoneRef, MilestoneState,
     PmError, Result,
 };
+use async_trait::async_trait;
 use reqwest::header::{ACCEPT, AUTHORIZATION, USER_AGENT};
 use reqwest::{Client, Method, StatusCode};
 use serde::{Deserialize, Serialize};

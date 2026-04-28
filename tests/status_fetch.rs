@@ -1,8 +1,8 @@
 //! Integration tests for pm-cli GitHub client fetching.
 
 use httpmock::prelude::*;
-use pm_cli::client::GitHubClient;
-use pm_cli::status::{PrSummary, RepoSummary};
+use pm::client::GitHubClient;
+use pm::status::{PrSummary, RepoSummary};
 
 #[tokio::test]
 async fn test_get_paginated_with_existing_query_string() {
@@ -249,7 +249,7 @@ async fn test_fetch_repo_summary_rendering() {
     };
 
     // Verify rendering works
-    let md = pm_cli::status::render_markdown(&[summary], "test", "2026-04-28T12:00Z");
+    let md = pm::status::render_markdown(&[summary], "test", "2026-04-28T12:00Z");
     assert!(md.contains("# pm-status — 2026-04-28T12:00Z"));
     assert!(md.contains("| test/repo |"));
     assert!(md.contains("| 1 |")); // 1 PR

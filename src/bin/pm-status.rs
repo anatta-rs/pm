@@ -18,8 +18,8 @@
 use anyhow::{Context, Result, anyhow};
 use chrono::Utc;
 use clap::Parser;
-use pm_cli::client::GitHubClient;
-use pm_cli::status::RepoSummary;
+use pm::client::GitHubClient;
+use pm::status::RepoSummary;
 use std::process::Command;
 
 /// Command-line arguments.
@@ -161,7 +161,7 @@ async fn main() -> Result<()> {
         .collect();
 
     let now_utc = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let md = pm_cli::status::render_markdown(&summaries, &args.scope, &now_utc);
+    let md = pm::status::render_markdown(&summaries, &args.scope, &now_utc);
     println!("{md}");
 
     Ok(())

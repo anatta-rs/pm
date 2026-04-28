@@ -1,6 +1,6 @@
 //! Integration tests for pm-status markdown rendering.
 
-use pm_cli::status::{MilestoneSummary, PrSummary, RepoSummary};
+use pm::status::{MilestoneSummary, PrSummary, RepoSummary};
 
 #[test]
 fn test_render_repo_with_milestones() {
@@ -22,7 +22,7 @@ fn test_render_repo_with_milestones() {
         }],
     }];
 
-    let md = pm_cli::status::render_markdown(&summaries, "anatta-rs", "2026-04-28T12:00Z");
+    let md = pm::status::render_markdown(&summaries, "anatta-rs", "2026-04-28T12:00Z");
 
     // 1. Header
     assert!(md.contains("# pm-status — 2026-04-28T12:00Z"));
@@ -58,7 +58,7 @@ fn test_render_no_milestones_omitted() {
         milestones: vec![],
     }];
 
-    let md = pm_cli::status::render_markdown(&summaries, "test", "2026-04-28T00:00Z");
+    let md = pm::status::render_markdown(&summaries, "test", "2026-04-28T00:00Z");
 
     // Milestones section should not appear
     assert!(!md.contains("## Milestones (all repos)"));
@@ -102,7 +102,7 @@ fn test_render_multiple_repos_aggregation() {
         },
     ];
 
-    let md = pm_cli::status::render_markdown(&summaries, "anatta-rs,Lsh0x", "2026-04-28T12:00Z");
+    let md = pm::status::render_markdown(&summaries, "anatta-rs,Lsh0x", "2026-04-28T12:00Z");
 
     // Aggregate totals
     assert!(md.contains("**Totals:** 1 PRs, 6 issues, 1 milestones"));
@@ -147,7 +147,7 @@ fn test_milestone_progress_calculation() {
         ],
     }];
 
-    let md = pm_cli::status::render_markdown(&summaries, "test", "2026-04-28T00:00Z");
+    let md = pm::status::render_markdown(&summaries, "test", "2026-04-28T00:00Z");
 
     // m1: 0%
     assert!(md.contains("| m1 |"));
@@ -188,7 +188,7 @@ fn test_milestones_sorted_by_due_date() {
         ],
     }];
 
-    let md = pm_cli::status::render_markdown(&summaries, "test", "2026-04-28T00:00Z");
+    let md = pm::status::render_markdown(&summaries, "test", "2026-04-28T00:00Z");
 
     // Find positions in the cross-repo milestones table (after the section header)
     let milestone_section = md

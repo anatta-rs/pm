@@ -21,7 +21,7 @@
 //! All fields are optional except `repo` (any of the three lists may be
 //! empty). Re-applying a spec is a no-op.
 
-use pm_core::{Issue, IssueState, Label, Milestone, MilestoneState};
+use crate::{Issue, IssueState, Label, Milestone, MilestoneState};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
