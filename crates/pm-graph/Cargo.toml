@@ -1,0 +1,24 @@
+[package]
+name = "pm-graph"
+description = "Project pm-core issues/milestones/labels onto a polystore::GraphStore"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords = ["github", "issues", "graph", "polystore", "pm"]
+categories = ["api-bindings", "database"]
+
+[dependencies]
+pm-core = { workspace = true }
+polystore = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

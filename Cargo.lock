@@ -790,6 +790,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "pm-graph"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "pm-core",
+ "polystore",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "polystore"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "potential_utf"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1905,8 +1928,4 @@ version = "0.1.0"
 
 [[patch.unused]]
 name = "ingester-core"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "polystore"
 version = "0.1.0"
