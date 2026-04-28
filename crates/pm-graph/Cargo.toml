@@ -19,6 +19,12 @@ serde_json = { workspace = true }
 [dev-dependencies]
 pretty_assertions = { workspace = true }
 tokio = { workspace = true }
+testcontainers = "0.17"
+testcontainers-modules = { version = "0.5", features = ["neo4j"] }
+neo4rs = "0.7"
+
+[features]
+e2e-neo4j = []
 
 [lints]
 workspace = true
