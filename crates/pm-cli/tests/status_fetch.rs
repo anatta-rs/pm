@@ -233,7 +233,7 @@ async fn test_fetch_milestones_end_to_end() {
     );
 }
 
-/// Smoke test that verifies fetch_repo_summary rendering works with mock data.
+/// Smoke test that verifies `fetch_repo_summary` rendering works with mock data.
 #[tokio::test]
 async fn test_fetch_repo_summary_rendering() {
     let summary = RepoSummary {
