@@ -43,8 +43,7 @@ pm apply plan.yaml
 |---|---|
 | [`pm-core`](crates/pm-core)     | Trait + types. `IssueTracker`, `Issue`, `Milestone`, `Label`, `PmError`. Zero backends. |
 | [`pm-github`](crates/pm-github) | GitHub Issues backend (REST API v3). Bearer auth via PAT. |
-| [`pm-graph`](crates/pm-graph)   | Project a spec onto any [`polystore::GraphStore`]. Issues become first-class graph entities you can query alongside whatever else lives in your knowledge graph. |
-| [`pm-cli`](crates/pm-cli)       | The `pm` binary — YAML/JSON spec parser + `apply` / `list` commands. |
+| [`pm-cli`](crates/pm-cli)       | Binaries: `pm` (YAML/JSON spec + apply/list), `pm-status` (cross-repo project snapshot). |
 
 ## Why a trait
 
@@ -64,18 +63,32 @@ The trait promises **upsert by natural key**:
 no-ops on the second pass — no duplicate issues, no orphaned milestones.
 This is what makes the spec file safe to keep in git and re-run from CI.
 
-## Testing pm-graph
+## CLI tools
 
-`pm-graph` has two test suites:
-
-- **Unit tests** (fast): `cargo test -p pm-graph --lib` — exercises the in-memory test store.
-- **E2E tests** (spins up real Neo4j): `cargo test -p pm-graph --features e2e-neo4j --tests` — validates the graph projection against a real Neo4j 5 instance via testcontainers. Disabled by default (`#[ignore]`) so `cargo test` stays quick; CI runs both.
-
-To run only the e2e integration tests locally:
+### `pm apply` — declarative project spec
 
 ```sh
-cargo test -p pm-graph --features e2e-neo4j --tests -- --ignored
+export GITHUB_TOKEN=ghp_…
+pm apply plan.yaml
+# ✓ applied anatta-rs/anatta: 2 label(s), 1 milestone(s), 1 issue(s)
 ```
+
+Idempotent YAML/JSON spec to GitHub — upsert labels, milestones, and issues by
+natural key (`name`, `title`). Same spec re-runs forever without duplicates.
+
+### `pm-status` — cross-repo snapshot
+
+```sh
+pm-status anatta-rs,Lsh0x
+# Scans all repos in owners anatta-rs and Lsh0x.
+# Emits Markdown: open PRs, milestones with progress bars, in-flight task statuses.
+```
+
+Flags:
+- `[SCOPE]` — comma-separated GitHub owners or `owner/repo` pairs (default: `anatta-rs,Lsh0x`).
+- Auth via `GITHUB_TOKEN` env, falls back to `gh auth token`.
+
+Output: Markdown to stdout, ready to paste into wikis or Slack.
 
 ## Contributing
 
