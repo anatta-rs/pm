@@ -11,22 +11,22 @@
 use neo4rs::{Graph, Query};
 use pm_core::{Issue, IssueState, Label, Milestone, MilestoneState};
 use pm_graph::{
-    project_issue, project_label, project_milestone, project_repo, project_spec, PmEdge,
-    PmEdgeKind, PmNode, RepoCoord,
+    PmEdge, PmEdgeKind, PmNode, RepoCoord, project_issue, project_label, project_milestone,
+    project_repo, project_spec,
 };
 use polystore::{Direction, EntityId, GraphStore, Result as PolystoreResult, Scope};
 use std::sync::Arc;
 use testcontainers::runners::AsyncRunner;
 
 /// A minimal Neo4j-backed `GraphStore<PmNode, PmEdge>` for testing.
-/// Wraps neo4rs::Graph and implements the polystore trait.
+/// Wraps `neo4rs::Graph` and implements the polystore trait.
 struct Neo4jStore {
     graph: Arc<Graph>,
     scope: Scope,
 }
 
 impl Neo4jStore {
-    async fn new(graph: Arc<Graph>) -> Self {
+    fn new(graph: Arc<Graph>) -> Self {
         Self {
             graph,
             scope: Scope::new("neo4j-e2e-test", "_", "_"),
@@ -52,6 +52,7 @@ impl std::fmt::Display for RowError {
 impl std::error::Error for RowError {}
 
 /// Convert row extraction error to polystore error.
+#[allow(clippy::needless_pass_by_value)]
 fn row_error_to_poly(e: neo4rs::DeError) -> polystore::PolystoreError {
     polystore::PolystoreError::Backend(Box::new(RowError(e.to_string())))
 }
@@ -210,7 +211,11 @@ impl GraphStore<PmNode, PmEdge> for Neo4jStore {
         Ok(vec![])
     }
 
-    async fn reverse_path(&self, _from: &EntityId, _hops: u8) -> PolystoreResult<Vec<Vec<EntityId>>> {
+    async fn reverse_path(
+        &self,
+        _from: &EntityId,
+        _hops: u8,
+    ) -> PolystoreResult<Vec<Vec<EntityId>>> {
         // Not implemented for e2e test — can add if needed.
         Ok(vec![])
     }
@@ -222,14 +227,14 @@ async fn count_nodes(graph: &Graph) -> Result<i64, String> {
     let mut result = graph
         .execute(query)
         .await
-        .map_err(|e| format!("Query execution failed: {}", e))?;
+        .map_err(|e| format!("Query execution failed: {e}"))?;
     if let Some(row) = result
         .next()
         .await
-        .map_err(|e| format!("Result iteration failed: {}", e))?
+        .map_err(|e| format!("Result iteration failed: {e}"))?
     {
         row.get("count")
-            .map_err(|e| format!("Row extraction failed: {}", e))
+            .map_err(|e| format!("Row extraction failed: {e}"))
     } else {
         Ok(0)
     }
@@ -237,61 +242,70 @@ async fn count_nodes(graph: &Graph) -> Result<i64, String> {
 
 /// Helper to count edges by kind.
 async fn count_edges_by_kind(graph: &Graph, kind: &str) -> Result<i64, String> {
-    let query = Query::new(
-        "MATCH ()-[r:PmEdge { kind: $kind }]->() RETURN count(r) AS count".to_string(),
-    )
-    .param("kind", kind);
+    let query =
+        Query::new("MATCH ()-[r:PmEdge { kind: $kind }]->() RETURN count(r) AS count".to_string())
+            .param("kind", kind);
     let mut result = graph
         .execute(query)
         .await
-        .map_err(|e| format!("Query execution failed: {}", e))?;
+        .map_err(|e| format!("Query execution failed: {e}"))?;
     if let Some(row) = result
         .next()
         .await
-        .map_err(|e| format!("Result iteration failed: {}", e))?
+        .map_err(|e| format!("Result iteration failed: {e}"))?
     {
         row.get("count")
-            .map_err(|e| format!("Row extraction failed: {}", e))
+            .map_err(|e| format!("Row extraction failed: {e}"))
     } else {
         Ok(0)
     }
 }
 
 #[tokio::test]
-#[ignore]
+#[ignore = "requires Docker / Neo4j container — run with `cargo test -p pm-graph --features e2e-neo4j -- --ignored`"]
 async fn e2e_project_repo_upsert() {
-    let container = testcontainers_modules::neo4j::Neo4j::default().start().await.expect("start container");
+    let container = testcontainers_modules::neo4j::Neo4j::default()
+        .start()
+        .await
+        .expect("start container");
     let port = container.get_host_port_ipv4(7687).await.expect("get port");
-    let uri = format!("bolt://127.0.0.1:{}", port);
+    let uri = format!("bolt://127.0.0.1:{port}");
 
-    let graph = Arc::new(Graph::new(&uri, "neo4j", "password").await.expect("connect"));
-    let store = Neo4jStore::new(graph.clone()).await;
+    let graph = Arc::new(
+        Graph::new(&uri, "neo4j", "password")
+            .await
+            .expect("connect"),
+    );
+    let store = Neo4jStore::new(graph.clone());
     let coord = RepoCoord::new("anatta-rs", "anatta");
 
     // First projection.
-    project_repo(&store, &coord)
-        .await
-        .expect("project_repo");
+    project_repo(&store, &coord).await.expect("project_repo");
     let count1 = count_nodes(graph.as_ref()).await.expect("count_nodes");
     assert_eq!(count1, 1, "first projection creates 1 repo node");
 
     // Second projection (upsert).
-    project_repo(&store, &coord)
-        .await
-        .expect("project_repo");
+    project_repo(&store, &coord).await.expect("project_repo");
     let count2 = count_nodes(graph.as_ref()).await.expect("count_nodes");
     assert_eq!(count2, 1, "second projection is upsert (still 1 node)");
 }
 
 #[tokio::test]
-#[ignore]
+#[ignore = "requires Docker / Neo4j container — run with `cargo test -p pm-graph --features e2e-neo4j -- --ignored`"]
 async fn e2e_project_milestone_with_repo() {
-    let container = testcontainers_modules::neo4j::Neo4j::default().start().await.expect("start container");
+    let container = testcontainers_modules::neo4j::Neo4j::default()
+        .start()
+        .await
+        .expect("start container");
     let port = container.get_host_port_ipv4(7687).await.expect("get port");
-    let uri = format!("bolt://127.0.0.1:{}", port);
+    let uri = format!("bolt://127.0.0.1:{port}");
 
-    let graph = Arc::new(Graph::new(&uri, "neo4j", "password").await.expect("connect"));
-    let store = Neo4jStore::new(graph.clone()).await;
+    let graph = Arc::new(
+        Graph::new(&uri, "neo4j", "password")
+            .await
+            .expect("connect"),
+    );
+    let store = Neo4jStore::new(graph.clone());
     let coord = RepoCoord::new("anatta-rs", "anatta");
     let milestone = Milestone::new("v0.5");
 
@@ -309,14 +323,21 @@ async fn e2e_project_milestone_with_repo() {
 }
 
 #[tokio::test]
-#[ignore]
+#[ignore = "requires Docker / Neo4j container — run with `cargo test -p pm-graph --features e2e-neo4j -- --ignored`"]
 async fn e2e_project_issue_with_labels_and_milestone() {
-    let container = testcontainers_modules::neo4j::Neo4j::default().start().await.expect("start container");
+    let container = testcontainers_modules::neo4j::Neo4j::default()
+        .start()
+        .await
+        .expect("start container");
     let port = container.get_host_port_ipv4(7687).await.expect("get port");
-    let uri = format!("bolt://127.0.0.1:{}", port);
+    let uri = format!("bolt://127.0.0.1:{port}");
 
-    let graph = Arc::new(Graph::new(&uri, "neo4j", "password").await.expect("connect"));
-    let store = Neo4jStore::new(graph.clone()).await;
+    let graph = Arc::new(
+        Graph::new(&uri, "neo4j", "password")
+            .await
+            .expect("connect"),
+    );
+    let store = Neo4jStore::new(graph.clone());
     let coord = RepoCoord::new("anatta-rs", "anatta");
 
     // Pre-project labels + milestone.
@@ -359,23 +380,36 @@ async fn e2e_project_issue_with_labels_and_milestone() {
     let in_milestone_count = count_edges_by_kind(graph.as_ref(), "IN_MILESTONE")
         .await
         .expect("count IN_MILESTONE");
-    assert_eq!(in_milestone_count, 1, "1 IN_MILESTONE edge: issue->milestone");
+    assert_eq!(
+        in_milestone_count, 1,
+        "1 IN_MILESTONE edge: issue->milestone"
+    );
 
     let has_label_count = count_edges_by_kind(graph.as_ref(), "HAS_LABEL")
         .await
         .expect("count HAS_LABEL");
-    assert_eq!(has_label_count, 2, "2 HAS_LABEL edges: issue->label1, issue->label2");
+    assert_eq!(
+        has_label_count, 2,
+        "2 HAS_LABEL edges: issue->label1, issue->label2"
+    );
 }
 
 #[tokio::test]
-#[ignore]
+#[ignore = "requires Docker / Neo4j container — run with `cargo test -p pm-graph --features e2e-neo4j -- --ignored`"]
 async fn e2e_project_spec_full() {
-    let container = testcontainers_modules::neo4j::Neo4j::default().start().await.expect("start container");
+    let container = testcontainers_modules::neo4j::Neo4j::default()
+        .start()
+        .await
+        .expect("start container");
     let port = container.get_host_port_ipv4(7687).await.expect("get port");
-    let uri = format!("bolt://127.0.0.1:{}", port);
+    let uri = format!("bolt://127.0.0.1:{port}");
 
-    let graph = Arc::new(Graph::new(&uri, "neo4j", "password").await.expect("connect"));
-    let store = Neo4jStore::new(graph.clone()).await;
+    let graph = Arc::new(
+        Graph::new(&uri, "neo4j", "password")
+            .await
+            .expect("connect"),
+    );
+    let store = Neo4jStore::new(graph.clone());
     let coord = RepoCoord::new("anatta-rs", "anatta");
 
     // From the README example.
@@ -403,7 +437,10 @@ async fn e2e_project_spec_full() {
 
     let node_count = count_nodes(graph.as_ref()).await.expect("count_nodes");
     // 1 repo + 2 labels + 1 milestone + 1 issue = 5 nodes
-    assert_eq!(node_count, 5, "repo(1) + labels(2) + milestones(1) + issues(1) = 5");
+    assert_eq!(
+        node_count, 5,
+        "repo(1) + labels(2) + milestones(1) + issues(1) = 5"
+    );
 
     let total_edges = count_edges_by_kind(graph.as_ref(), "IN_REPO")
         .await
