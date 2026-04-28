@@ -14,7 +14,6 @@ repository = "https://github.com/anatta-rs/pm"
 [workspace.dependencies]
 pm-core = { path = "crates/pm-core" }
 pm-github = { path = "crates/pm-github" }
-pm-graph = { path = "crates/pm-graph" }
 polystore = { git = "https://github.com/anatta-rs/polystore", tag = "v0.1.0" }
 
 # Foundational external deps.
