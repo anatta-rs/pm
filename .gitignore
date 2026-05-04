@@ -4,3 +4,9 @@ lcov.info
 *.profraw
 .DS_Store
 .cargo/config.toml
+
+# Anatta `attach`: code → graph artifact bundle (regenerated on every sync).
+.artifacts/
+
+# Anatta `attach`: regenerated caches (bundle output + a2m content-addressed cache).
+.a2m/
