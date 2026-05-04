@@ -1,0 +1,12 @@
+# Template for tools/pm/.cargo/config.toml — gitignored, copied manually.
+#
+# Patches the anatta-rs git deps to point at sibling clones in the local
+# layout (libs/, tools/ under the parent anatta-rs/ directory) so you
+# can iterate on both repos without push/pull cycles. Production builds
+# (CI) don't have this file present and resolve the deps from GitHub
+# via [workspace.dependencies] as usual.
+#
+# Usage: `cp scripts/cargo-config.local.toml .cargo/config.toml`
+
+[patch."https://github.com/anatta-rs/polystore"]
+polystore = { path = "../../libs/polystore" }

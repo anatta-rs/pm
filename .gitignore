@@ -3,6 +3,10 @@
 lcov.info
 *.profraw
 .DS_Store
+
+# Local cargo config (path overrides to ../../libs/, ../../tools/ siblings).
+# Template at scripts/cargo-config.local.toml — copy to .cargo/config.toml
+# manually when you want to dev a sibling lib without push/pull cycles.
 .cargo/config.toml
 
 # Anatta `attach`: code → graph artifact bundle (regenerated on every sync).
